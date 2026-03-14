@@ -1,0 +1,71 @@
+import { Title, Text, Button, Stack, TextInput, PasswordInput, Group } from "@mantine/core";
+import { useState } from "react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { notifications } from "@mantine/notifications";
+
+export function LoginPage() {
+  const { signIn } = useAuthActions();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+
+  const handleAuth = async () => {
+    try {
+      await signIn("password", {
+        email,
+        password,
+        name: isSignUp ? name : undefined,
+        flow: isSignUp ? "signUp" : "signIn",
+      });
+      notifications.show({ color: "green", message: "Вход выполнен успешно!" });
+    } catch (error) {
+      notifications.show({ color: "red", message: error.message || "Ошибка входа" });
+    }
+  };
+
+  return (
+    <Stack align="center" justify="center" h={400}>
+      <Title order={2} mb="sm">
+        {isSignUp ? "Регистрация" : "Вход"} в Watch List
+      </Title>
+      <Text c="dimmed" mb="lg">
+        {isSignUp ? "Создайте аккаунт" : "Войдите в свой аккаунт"}.
+      </Text>
+      <TextInput
+        placeholder="your@email.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        size="lg"
+        style={{ width: 300 }}
+        label="Email"
+      />
+      {isSignUp && (
+        <TextInput
+          placeholder="Ваше имя"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          size="lg"
+          style={{ width: 300 }}
+          label="Имя"
+        />
+      )}
+      <PasswordInput
+        placeholder="Пароль"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        size="lg"
+        style={{ width: 300 }}
+        label="Пароль"
+      />
+      <Group>
+        <Button size="lg" onClick={handleAuth} disabled={!email || !password || (isSignUp && !name)}>
+          {isSignUp ? "Зарегистрироваться" : "Войти"}
+        </Button>
+        <Button variant="subtle" onClick={() => setIsSignUp(!isSignUp)}>
+          {isSignUp ? "Уже есть аккаунт?" : "Создать аккаунт"}
+        </Button>
+      </Group>
+    </Stack>
+  );
+}

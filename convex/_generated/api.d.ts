@@ -15,6 +15,7 @@ import type * as history from "../history.js";
 import type * as http from "../http.js";
 import type * as items from "../items.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as ratings from "../ratings.js";
 import type * as users from "../users.js";
 
 import type {
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   items: typeof items;
   "lib/auth": typeof lib_auth;
+  ratings: typeof ratings;
   users: typeof users;
 }>;
 

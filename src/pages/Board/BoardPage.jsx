@@ -4,6 +4,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { CreateItemModal } from "@/components/items/CreateItemModal";
 import { EditItemModal } from "@/components/items/EditItemModal";
+import { RatingDisplay } from "@/components/items/RatingDisplay";
+import { PersonalRatingDisplay } from "@/components/items/PersonalRatingDisplay";
 import { useState, useEffect } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import {
@@ -24,6 +26,7 @@ function SortableItem({ item, onEdit, onComplete, onHide, onHardDelete }) {
   };
 
   const pct = item.totalEpisodes > 0 ? Math.round((item.currentEpisode / item.totalEpisodes) * 100) : 0;
+  const isCompleted = pct >= 100;
 
   return (
     <Card ref={setNodeRef} style={style} padding="sm" withBorder>
@@ -61,6 +64,7 @@ function SortableItem({ item, onEdit, onComplete, onHide, onHardDelete }) {
         </Group>
       </Group>
       <Progress value={pct} size="sm" mt="xs" />
+      <PersonalRatingDisplay itemId={item._id} isCompleted={isCompleted} />
     </Card>
   );
 }
@@ -81,6 +85,7 @@ function MergedList({ boardId }) {
       <EditItemModal itemId={editingId} item={editingItem} onClose={() => setEditingId(null)} />
       {merged.map(({ item, userName }) => {
         const pct = item.totalEpisodes > 0 ? Math.round((item.currentEpisode / item.totalEpisodes) * 100) : 0;
+        const isCompleted = pct >= 100;
         return (
           <Card key={item._id} padding="sm" withBorder>
             <Group justify="space-between">
@@ -105,6 +110,7 @@ function MergedList({ boardId }) {
               </Group>
             </Group>
             <Progress value={pct} size="sm" mt="xs" />
+            <RatingDisplay itemId={item._id} isCompleted={isCompleted} />
           </Card>
         );
       })}
@@ -305,8 +311,7 @@ function HistoryList({ boardId }) {
     <Stack gap="xs">
       {history.map((e) => (
         <Text key={e._id} size="sm">
-          <strong>{e.userName}</strong> {actionLabels[e.action] ?? e.action} —{" "}
-          {new Date(e.timestamp).toLocaleString()}
+          <strong>{e.userName}</strong> {actionLabels[e.action] ?? e.action} — {new Date(e.timestamp).toLocaleString()}
         </Text>
       ))}
     </Stack>

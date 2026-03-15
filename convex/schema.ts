@@ -50,4 +50,29 @@ export default defineSchema({
     details: v.optional(v.any()),
     timestamp: v.number(),
   }).index("byBoard", ["boardId"]),
+  ratings: defineTable({
+    itemId: v.id("items"),
+    userId: v.id("users"),
+    plotCharacters: v.number(), // 1-5
+    atmosphereStyle: v.number(), // 1-5
+    executionQuality: v.number(), // 1-5
+    originality: v.number(), // 1-5
+    emotionalImpact: v.number(), // 1-5
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("byItem", ["itemId"])
+    .index("byUser", ["userId"])
+    .index("byItemUser", ["itemId", "userId"]),
+  reviews: defineTable({
+    itemId: v.id("items"),
+    userId: v.id("users"),
+    ratingId: v.id("ratings"),
+    comment: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("byItem", ["itemId"])
+    .index("byUser", ["userId"])
+    .index("byRating", ["ratingId"]),
 });

@@ -1,4 +1,5 @@
 import { Stack, Button, Text, Loader } from "@mantine/core";
+import { IconPlus, IconList } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useAuthToken } from "@convex-dev/auth/react";
@@ -27,7 +28,7 @@ export function AppNavbar() {
 
   return (
     <Stack gap="xs" p="md">
-      <Button onClick={() => setModalOpen(true)} fullWidth disabled={loading}>
+      <Button onClick={() => setModalOpen(true)} fullWidth disabled={loading} leftSection={<IconPlus size={16} />}>
         {loading ? "Создание..." : "Создать доску"}
       </Button>
       {boards === undefined ? (
@@ -45,14 +46,12 @@ export function AppNavbar() {
             variant="subtle"
             fullWidth
             style={{ justifyContent: "flex-start" }}
+            leftSection={<IconList size={16} />}
           >
             {board.name}
           </Button>
         ))
       )}
-      <Button component={Link} to="/profile" variant="subtle" fullWidth>
-        Профиль
-      </Button>
       <CreateBoardModal opened={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreate} />
     </Stack>
   );

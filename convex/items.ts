@@ -11,34 +11,34 @@ export const listMyByBoard = query({
     if (!userId) return [];
     const member = await ctx.db
       .query("boardMembers")
-      .withIndex("byBoardUser", (q) =>
-        q.eq("boardId", boardId).eq("userId", userId),
-      )
+      .withIndex("byBoardUser", (q) => q.eq("boardId", boardId).eq("userId", userId))
       .unique();
     if (!member) return [];
     return await ctx.db
       .query("items")
-      .withIndex("byBoardUserOrder", (q) =>
-        q.eq("boardId", boardId).eq("userId", userId),
-      )
+      .withIndex("byBoardUserOrder", (q) => q.eq("boardId", boardId).eq("userId", userId))
       .order("asc")
       .collect();
   },
 });
 
 /** All non-hidden items in board (for merge). Grouped by userId, each group sorted by order. */
-async function getItemsByMember(ctx: import("./_generated/server").QueryCtx, boardId: import("./_generated/dataModel").Id<"boards">) {
+async function getItemsByMember(
+  ctx: import("./_generated/server").QueryCtx,
+  boardId: import("./_generated/dataModel").Id<"boards">,
+) {
   const members = await ctx.db
     .query("boardMembers")
     .withIndex("byBoard", (q) => q.eq("boardId", boardId))
     .collect();
-  const result: Array<{ userId: import("./_generated/dataModel").Id<"users">; items: Array<import("./_generated/server").Doc<"items">> }> = [];
+  const result: Array<{
+    userId: import("./_generated/dataModel").Id<"users">;
+    items: Array<import("./_generated/server").Doc<"items">>;
+  }> = [];
   for (const m of members) {
     const items = await ctx.db
       .query("items")
-      .withIndex("byBoardUserOrder", (q) =>
-        q.eq("boardId", boardId).eq("userId", m.userId),
-      )
+      .withIndex("byBoardUserOrder", (q) => q.eq("boardId", boardId).eq("userId", m.userId))
       .filter((q) => q.eq(q.field("isHidden"), false))
       .order("asc")
       .collect();
@@ -55,9 +55,7 @@ export const getMergedBoardItems = query({
     if (!userId) return [];
     const member = await ctx.db
       .query("boardMembers")
-      .withIndex("byBoardUser", (q) =>
-        q.eq("boardId", boardId).eq("userId", userId),
-      )
+      .withIndex("byBoardUser", (q) => q.eq("boardId", boardId).eq("userId", userId))
       .unique();
     if (!member) return [];
     const byMember = await getItemsByMember(ctx, boardId);
@@ -100,16 +98,12 @@ export const create = mutation({
     if (!userId) throw new Error("Not authenticated");
     const member = await ctx.db
       .query("boardMembers")
-      .withIndex("byBoardUser", (q) =>
-        q.eq("boardId", boardId).eq("userId", userId),
-      )
+      .withIndex("byBoardUser", (q) => q.eq("boardId", boardId).eq("userId", userId))
       .unique();
     if (!member) throw new Error("Not a member of this board");
     const existing = await ctx.db
       .query("items")
-      .withIndex("byBoardUserOrder", (q) =>
-        q.eq("boardId", boardId).eq("userId", userId),
-      )
+      .withIndex("byBoardUserOrder", (q) => q.eq("boardId", boardId).eq("userId", userId))
       .order("desc")
       .first();
     const order = (existing?.order ?? -1) + 1;
@@ -153,9 +147,7 @@ export const update = mutation({
     if (!item) throw new Error("Item not found");
     const member = await ctx.db
       .query("boardMembers")
-      .withIndex("byBoardUser", (q) =>
-        q.eq("boardId", item.boardId).eq("userId", userId),
-      )
+      .withIndex("byBoardUser", (q) => q.eq("boardId", item.boardId).eq("userId", userId))
       .unique();
     if (!member) throw new Error("Not a member of this board");
     const patch: Partial<typeof item> = { updatedAt: Date.now() };
@@ -190,9 +182,7 @@ export const remove = mutation({
     if (!item) return null;
     const member = await ctx.db
       .query("boardMembers")
-      .withIndex("byBoardUser", (q) =>
-        q.eq("boardId", item.boardId).eq("userId", userId),
-      )
+      .withIndex("byBoardUser", (q) => q.eq("boardId", item.boardId).eq("userId", userId))
       .unique();
     if (!member) throw new Error("Not a member of this board");
     await ctx.db.patch(itemId, { isHidden: true });
@@ -216,9 +206,7 @@ export const complete = mutation({
     if (!item) throw new Error("Item not found");
     const member = await ctx.db
       .query("boardMembers")
-      .withIndex("byBoardUser", (q) =>
-        q.eq("boardId", item.boardId).eq("userId", userId),
-      )
+      .withIndex("byBoardUser", (q) => q.eq("boardId", item.boardId).eq("userId", userId))
       .unique();
     if (!member) throw new Error("Not a member of this board");
     if (item.currentEpisode >= item.totalEpisodes) return null;
@@ -236,6 +224,61 @@ export const complete = mutation({
   },
 });
 
+/** Restore a previously hidden item (isHidden = false). Any board member. */
+export const restore = mutation({
+  args: { itemId: v.id("items") },
+  handler: async (ctx, { itemId }) => {
+    const userId = await getCurrentUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const item = await ctx.db.get(itemId);
+    if (!item) throw new Error("Item not found");
+    const member = await ctx.db
+      .query("boardMembers")
+      .withIndex("byBoardUser", (q) => q.eq("boardId", item.boardId).eq("userId", userId))
+      .unique();
+    if (!member) throw new Error("Not a member of this board");
+    if (!item.isHidden) return null;
+    await ctx.db.patch(itemId, {
+      isHidden: false,
+      updatedAt: Date.now(),
+    });
+    await ctx.runMutation(internal.history.log, {
+      boardId: item.boardId,
+      itemId,
+      action: "update",
+      details: { isHidden: false },
+      userId,
+    });
+    return null;
+  },
+});
+
+/** Hard delete an item completely. Only the owner can do this, typically from their personal list. */
+export const hardDelete = mutation({
+  args: { itemId: v.id("items") },
+  handler: async (ctx, { itemId }) => {
+    const userId = await getCurrentUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const item = await ctx.db.get(itemId);
+    if (!item) return null;
+    if (item.userId !== userId) throw new Error("Only owner can permanently delete item");
+    const member = await ctx.db
+      .query("boardMembers")
+      .withIndex("byBoardUser", (q) => q.eq("boardId", item.boardId).eq("userId", userId))
+      .unique();
+    if (!member) throw new Error("Not a member of this board");
+    await ctx.db.delete(itemId);
+    await ctx.runMutation(internal.history.log, {
+      boardId: item.boardId,
+      itemId,
+      action: "delete",
+      details: { hard: true },
+      userId,
+    });
+    return null;
+  },
+});
+
 /** Reorder: only owner can reorder their items. newOrder = array of item ids in desired order. */
 export const reorder = mutation({
   args: { boardId: v.id("boards"), newOrder: v.array(v.id("items")) },
@@ -244,16 +287,12 @@ export const reorder = mutation({
     if (!userId) throw new Error("Not authenticated");
     const member = await ctx.db
       .query("boardMembers")
-      .withIndex("byBoardUser", (q) =>
-        q.eq("boardId", boardId).eq("userId", userId),
-      )
+      .withIndex("byBoardUser", (q) => q.eq("boardId", boardId).eq("userId", userId))
       .unique();
     if (!member) throw new Error("Not a member of this board");
     const myItems = await ctx.db
       .query("items")
-      .withIndex("byBoardUserOrder", (q) =>
-        q.eq("boardId", boardId).eq("userId", userId),
-      )
+      .withIndex("byBoardUserOrder", (q) => q.eq("boardId", boardId).eq("userId", userId))
       .collect();
     const myIds = new Set(myItems.map((i) => i._id));
     const validOrder = newOrder.filter((id) => myIds.has(id));

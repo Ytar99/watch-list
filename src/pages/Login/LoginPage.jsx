@@ -1,17 +1,27 @@
 import { Title, Text, Button, Stack, TextInput, PasswordInput, Group } from "@mantine/core";
-import { useState } from "react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useState, useEffect } from "react";
+import { useAuthActions, useAuthToken } from "@convex-dev/auth/react";
 import { notifications } from "@mantine/notifications";
 import { useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
+import { useNavigate } from "react-router-dom";
 
 export function LoginPage() {
   const { signIn } = useAuthActions();
+  const token = useAuthToken();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const updateProfile = useMutation(api.users.updateProfile);
+
+  // Автоматический редирект после авторизации
+  useEffect(() => {
+    if (token) {
+      navigate("/", { replace: true });
+    }
+  }, [token, navigate]);
 
   const handleAuth = async () => {
     try {

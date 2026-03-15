@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { HomePage } from "@/pages/Home/HomePage.jsx";
 import { LoginPage } from "@/pages/Login/LoginPage.jsx";
@@ -8,7 +8,15 @@ import { ProfilePage } from "@/pages/Profile/ProfilePage.jsx";
 function ProtectedRoute({ children }) {
   const token = useAuthToken();
   if (!token) {
-    return <LoginPage />;
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
+function PublicRoute({ children }) {
+  const token = useAuthToken();
+  if (token) {
+    return <Navigate to="/" replace />;
   }
   return children;
 }
@@ -24,7 +32,14 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
+        }
+      />
       <Route
         path="/board/:boardId"
         element={

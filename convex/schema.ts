@@ -9,6 +9,7 @@ export default defineSchema({
     createdBy: v.id("users"),
     createdAt: v.number(),
     isActive: v.boolean(),
+    emoji: v.optional(v.string()),
   }).index("byCreatedBy", ["createdBy"]),
   boardMembers: defineTable({
     boardId: v.id("boards"),

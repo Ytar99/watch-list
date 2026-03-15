@@ -8,11 +8,11 @@ import { useMediaQuery } from "@mantine/hooks";
 
 function App() {
   const token = useAuthToken();
-  const isMobile = useMediaQuery("(max-width: 600px)");
+  const isMobile = useMediaQuery("(max-width: 768px)");
   return (
     <AppShell
       header={{ height: 60 }}
-      navbar={token && !isMobile ? { width: 260, breakpoint: "sm" } : undefined}
+      navbar={token && !isMobile ? { width: 260 } : undefined}
       padding={isMobile ? 0 : "md"}
     >
       <AppShell.Header>

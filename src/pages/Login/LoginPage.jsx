@@ -2,6 +2,8 @@ import { Title, Text, Button, Stack, TextInput, PasswordInput, Group } from "@ma
 import { useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { notifications } from "@mantine/notifications";
+import { useMutation } from "convex/react";
+import { api } from "@convex/_generated/api";
 
 export function LoginPage() {
   const { signIn } = useAuthActions();
@@ -9,6 +11,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const updateProfile = useMutation(api.users.updateProfile);
 
   const handleAuth = async () => {
     try {
@@ -18,6 +21,13 @@ export function LoginPage() {
         name: isSignUp ? name : undefined,
         flow: isSignUp ? "signUp" : "signIn",
       });
+      if (isSignUp && name) {
+        try {
+          await updateProfile({ name });
+        } catch {
+          // ignore, профиль можно изменить вручную позже
+        }
+      }
       notifications.show({ color: "green", message: "Вход выполнен успешно!" });
     } catch (error) {
       notifications.show({ color: "red", message: error.message || "Ошибка входа" });

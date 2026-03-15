@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
@@ -11,6 +11,20 @@ export const getCurrentUser = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
     return await ctx.db.get(userId);
+  },
+});
+
+/**
+ * Update current user's profile (only name, email is immutable).
+ */
+export const updateProfile = mutation({
+  args: { name: v.string() },
+  handler: async (ctx, { name }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const trimmed = name.trim();
+    await ctx.db.patch(userId, { name: trimmed || undefined });
+    return null;
   },
 });
 

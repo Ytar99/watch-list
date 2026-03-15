@@ -11,15 +11,11 @@ export const list = query({
       .query("boardMembers")
       .withIndex("byUser", (q) => q.eq("userId", userId))
       .collect();
-    const boards: Array<{
-      _id: import("./_generated/dataModel").Id<"boards">;
-      _creationTime: number;
-      name: string;
-      createdBy: import("./_generated/dataModel").Id<"users">;
-      createdAt: number;
-      isActive: boolean;
-      role: "creator" | "moderator" | "member";
-    }> = [];
+    const boards: Array<
+      {
+        role: "creator" | "moderator" | "member";
+      } & import("./_generated/server").Doc<"boards">
+    > = [];
     for (const m of memberships) {
       const board = await ctx.db.get(m.boardId);
       if (board && board.isActive) {
@@ -32,8 +28,8 @@ export const list = query({
 });
 
 export const create = mutation({
-  args: { name: v.string() },
-  handler: async (ctx, { name }) => {
+  args: { name: v.string(), emoji: v.optional(v.string()) },
+  handler: async (ctx, { name, emoji }) => {
     const userId = await getCurrentUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
@@ -42,6 +38,7 @@ export const create = mutation({
       createdBy: userId,
       createdAt: now,
       isActive: true,
+      emoji: emoji?.trim() || undefined,
     });
     await ctx.db.insert("boardMembers", {
       boardId,
@@ -76,8 +73,9 @@ export const update = mutation({
     boardId: v.id("boards"),
     name: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
+    emoji: v.optional(v.string()),
   },
-  handler: async (ctx, { boardId, name, isActive }) => {
+  handler: async (ctx, { boardId, name, isActive, emoji }) => {
     const userId = await getCurrentUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const member = await ctx.db
@@ -88,9 +86,10 @@ export const update = mutation({
       .unique();
     if (!member || member.role !== "creator")
       throw new Error("Only creator can update board");
-    const patch: { name?: string; isActive?: boolean } = {};
+    const patch: { name?: string; isActive?: boolean; emoji?: string } = {};
     if (name !== undefined) patch.name = name.trim() || "Без названия";
     if (isActive !== undefined) patch.isActive = isActive;
+    if (emoji !== undefined) patch.emoji = emoji.trim() || undefined;
     if (Object.keys(patch).length) await ctx.db.patch(boardId, patch);
     return null;
   },

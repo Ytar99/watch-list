@@ -30,7 +30,7 @@ export const updateProfile = mutation({
 
 /**
  * Search users by email (for inviting to boards).
- * Returns at most one user; email comparison is case-sensitive in Convex.
+ * Returns at most one user; email comparison is case-insensitive.
  */
 export const searchByEmail = query({
   args: { email: v.string() },

@@ -26,7 +26,7 @@ export function LoginPage() {
   const handleAuth = async () => {
     try {
       await signIn("password", {
-        email,
+        email: email.trim().toLowerCase(),
         password,
         name: isSignUp ? name : undefined,
         flow: isSignUp ? "signUp" : "signIn",
